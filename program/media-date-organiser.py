@@ -5,17 +5,29 @@ from datetime import datetime
 import subprocess
 import json
 
+def get_root_dir():
+    """Get the root directory (parent of program directory)."""
+    return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 def create_folders():
     """Create required folders if they don't exist."""
+    root_dir = get_root_dir()
     folders = ['output/failed', 'output/videos', 'output/photos']
     for folder in folders:
-        if not os.path.exists(folder):
-            os.makedirs(folder)
+        folder_path = os.path.join(root_dir, folder)
+        if not os.path.exists(folder_path):
+            os.makedirs(folder_path)
 
 def count_media_files():
-    """Count total number of photos and videos in current directory."""
-    photo_count = sum(1 for f in os.listdir('.') if f.lower().endswith('.jpg'))
-    video_count = sum(1 for f in os.listdir('.') if f.lower().endswith('.mp4'))
+    """Count total number of photos and videos in root directory."""
+    root_dir = get_root_dir()
+    print(f"Looking for files in: {root_dir}")
+    
+    # List all files in directory
+    all_files = os.listdir(root_dir)
+    photo_count = sum(1 for f in all_files if f.lower().endswith('.jpg'))
+    video_count = sum(1 for f in all_files if f.lower().endswith('.mp4'))
+    
     return photo_count, video_count
 
 def extract_date_from_filename(filename):
@@ -34,7 +46,8 @@ def get_file_metadata(filepath):
     """Get metadata using exiftool."""
     try:
         # Use exiftool from the program directory
-        exiftool_path = os.path.join('program', 'exiftool.exe')
+        program_dir = os.path.dirname(os.path.abspath(__file__))
+        exiftool_path = os.path.join(program_dir, 'exiftool.exe')
         result = subprocess.run([exiftool_path, '-json', filepath], 
                               capture_output=True, text=True, check=True)
         metadata = json.loads(result.stdout)[0]
@@ -47,7 +60,8 @@ def set_file_dates(filepath, target_date):
     date_str = target_date.strftime("%Y:%m:%d %H:%M:%S")
     try:
         # Use exiftool from the program directory
-        exiftool_path = os.path.join('program', 'exiftool.exe')
+        program_dir = os.path.dirname(os.path.abspath(__file__))
+        exiftool_path = os.path.join(program_dir, 'exiftool.exe')
         if filepath.lower().endswith('.mp4'):
             # For video files, we need to set more specific tags
             subprocess.run([
@@ -78,6 +92,7 @@ def set_file_dates(filepath, target_date):
 
 def process_files():
     """Main function to process files."""
+    root_dir = get_root_dir()
     create_folders()
     
     # Count total files before processing
@@ -101,13 +116,13 @@ def process_files():
 
     # Process photos first
     print("\nProcessing photos...")
-    for filename in os.listdir('.'):
+    for filename in os.listdir(root_dir):
         if not filename.lower().endswith('.jpg'):
             continue
 
         photo_counter += 1
         results['total_processed'] += 1
-        filepath = os.path.join('.', filename)
+        filepath = os.path.join(root_dir, filename)
         success = False
         error_message = ""
 
@@ -135,7 +150,7 @@ def process_files():
                 # Set the metadata dates
                 if set_file_dates(filepath, date):
                     # Move file to photos folder
-                    shutil.move(filepath, os.path.join('output', 'photos', filename))
+                    shutil.move(filepath, os.path.join(root_dir, 'output', 'photos', filename))
                     success = True
                 else:
                     error_message = "Failed to set metadata"
@@ -155,7 +170,7 @@ def process_files():
             results['total_failed'] += 1
             results['failed_photos'] += 1
             try:
-                shutil.move(filepath, os.path.join('output', 'failed', filename))
+                shutil.move(filepath, os.path.join(root_dir, 'output', 'failed', filename))
             except Exception as e:
                 print(f"Error moving failed file {filename}: {e}")
         
@@ -163,13 +178,13 @@ def process_files():
 
     print("\nProcessing videos...")
     # Process videos second
-    for filename in os.listdir('.'):
+    for filename in os.listdir(root_dir):
         if not filename.lower().endswith('.mp4'):
             continue
 
         video_counter += 1
         results['total_processed'] += 1
-        filepath = os.path.join('.', filename)
+        filepath = os.path.join(root_dir, filename)
         success = False
         error_message = ""
 
@@ -197,7 +212,7 @@ def process_files():
                 # Set the metadata dates
                 if set_file_dates(filepath, date):
                     # Move file to videos folder
-                    shutil.move(filepath, os.path.join('output', 'videos', filename))
+                    shutil.move(filepath, os.path.join(root_dir, 'output', 'videos', filename))
                     success = True
                 else:
                     error_message = "Failed to set metadata"
@@ -217,7 +232,7 @@ def process_files():
             results['total_failed'] += 1
             results['failed_videos'] += 1
             try:
-                shutil.move(filepath, os.path.join('output', 'failed', filename))
+                shutil.move(filepath, os.path.join(root_dir, 'output', 'failed', filename))
             except Exception as e:
                 print(f"Error moving failed file {filename}: {e}")
         
@@ -228,7 +243,8 @@ def process_files():
 
 def write_summary(results):
     """Write processing summary to file."""
-    with open(os.path.join('output', 'summary.txt'), 'w', encoding='utf-8') as f:
+    root_dir = get_root_dir()
+    with open(os.path.join(root_dir, 'output', 'summary.txt'), 'w', encoding='utf-8') as f:
         f.write("File Processing Summary\n")
         f.write("=====================\n\n")
         f.write(f"Total files processed: {results['total_processed']}\n")
@@ -251,9 +267,11 @@ def write_summary(results):
                 f.write(f"[X] {filename}: {error}\n")
 
 def main():
+    root_dir = get_root_dir()
     # Create output directory if it doesn't exist
-    if not os.path.exists('output'):
-        os.makedirs('output')
+    output_dir = os.path.join(root_dir, 'output')
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
 
     print("Starting file processing...")
     total_photos, total_videos = count_media_files()
