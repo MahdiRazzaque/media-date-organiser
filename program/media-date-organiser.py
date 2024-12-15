@@ -7,7 +7,7 @@ import json
 
 def create_folders():
     """Create required folders if they don't exist."""
-    folders = ['failed', 'videos', 'photos']
+    folders = ['output/failed', 'output/videos', 'output/photos']
     for folder in folders:
         if not os.path.exists(folder):
             os.makedirs(folder)
@@ -33,7 +33,9 @@ def extract_date_from_filename(filename):
 def get_file_metadata(filepath):
     """Get metadata using exiftool."""
     try:
-        result = subprocess.run(['exiftool', '-json', filepath], 
+        # Use exiftool from the program directory
+        exiftool_path = os.path.join('program', 'exiftool.exe')
+        result = subprocess.run([exiftool_path, '-json', filepath], 
                               capture_output=True, text=True, check=True)
         metadata = json.loads(result.stdout)[0]
         return metadata
@@ -44,10 +46,12 @@ def set_file_dates(filepath, target_date):
     """Set file creation and modification dates using exiftool."""
     date_str = target_date.strftime("%Y:%m:%d %H:%M:%S")
     try:
+        # Use exiftool from the program directory
+        exiftool_path = os.path.join('program', 'exiftool.exe')
         if filepath.lower().endswith('.mp4'):
             # For video files, we need to set more specific tags
             subprocess.run([
-                'exiftool',
+                exiftool_path,
                 '-overwrite_original',
                 f'-CreateDate={date_str}',
                 f'-ModifyDate={date_str}',
@@ -62,13 +66,14 @@ def set_file_dates(filepath, target_date):
         else:
             # For photos, use AllDates
             subprocess.run([
-                'exiftool',
+                exiftool_path,
                 '-overwrite_original',
                 f'-AllDates={date_str}',
                 filepath
             ], check=True, capture_output=True)
         return True
-    except subprocess.CalledProcessError:
+    except subprocess.CalledProcessError as e:
+        print(f"ExifTool error: {e.stderr.decode() if e.stderr else str(e)}")
         return False
 
 def process_files():
@@ -130,7 +135,7 @@ def process_files():
                 # Set the metadata dates
                 if set_file_dates(filepath, date):
                     # Move file to photos folder
-                    shutil.move(filepath, os.path.join('photos', filename))
+                    shutil.move(filepath, os.path.join('output', 'photos', filename))
                     success = True
                 else:
                     error_message = "Failed to set metadata"
@@ -150,7 +155,7 @@ def process_files():
             results['total_failed'] += 1
             results['failed_photos'] += 1
             try:
-                shutil.move(filepath, os.path.join('failed', filename))
+                shutil.move(filepath, os.path.join('output', 'failed', filename))
             except Exception as e:
                 print(f"Error moving failed file {filename}: {e}")
         
@@ -192,7 +197,7 @@ def process_files():
                 # Set the metadata dates
                 if set_file_dates(filepath, date):
                     # Move file to videos folder
-                    shutil.move(filepath, os.path.join('videos', filename))
+                    shutil.move(filepath, os.path.join('output', 'videos', filename))
                     success = True
                 else:
                     error_message = "Failed to set metadata"
@@ -212,7 +217,7 @@ def process_files():
             results['total_failed'] += 1
             results['failed_videos'] += 1
             try:
-                shutil.move(filepath, os.path.join('failed', filename))
+                shutil.move(filepath, os.path.join('output', 'failed', filename))
             except Exception as e:
                 print(f"Error moving failed file {filename}: {e}")
         
@@ -223,7 +228,7 @@ def process_files():
 
 def write_summary(results):
     """Write processing summary to file."""
-    with open('summary.txt', 'w', encoding='utf-8') as f:
+    with open(os.path.join('output', 'summary.txt'), 'w', encoding='utf-8') as f:
         f.write("File Processing Summary\n")
         f.write("=====================\n\n")
         f.write(f"Total files processed: {results['total_processed']}\n")
@@ -246,12 +251,16 @@ def write_summary(results):
                 f.write(f"[X] {filename}: {error}\n")
 
 def main():
+    # Create output directory if it doesn't exist
+    if not os.path.exists('output'):
+        os.makedirs('output')
+
     print("Starting file processing...")
     total_photos, total_videos = count_media_files()
     print(f"Found {total_photos} photos and {total_videos} videos to process")
     results = process_files()
     write_summary(results)
-    print(f"\nProcessing complete. Check summary.txt for details.")
+    print(f"\nProcessing complete. Check output/summary.txt for details.")
     print(f"Photos: {results['processed_photos']}/{total_photos} processed ({results['failed_photos']} failed)")
     print(f"Videos: {results['processed_videos']}/{total_videos} processed ({results['failed_videos']} failed)")
 

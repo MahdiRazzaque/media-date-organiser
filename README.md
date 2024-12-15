@@ -22,35 +22,44 @@ A Python script that organises media files (photos and videos) by extracting dat
 2. Download ExifTool:
    - Go to [ExifTool's official website](https://exiftool.org)
    - Download the Windows Executable (ZIP file)
-   - Extract `exiftool(-k).exe` from the ZIP
-   - Rename it to `exiftool.exe`
-   - Place it in the same folder as the script
+   - Extract the contents
+   - Rename `exiftool(-k).exe` to `exiftool.exe`
+   - Place `exiftool.exe` and the `exiftool_files` directory in the `program` folder
 
 ## Usage
 
-1. Place the script in the folder containing your media files
-2. Make sure `exiftool.exe` is in the same folder
+1. Place your media files in the root directory (where the `program` folder is)
+2. Make sure `exiftool.exe` and `exiftool_files` are in the `program` folder
 3. Run the script:
 ```bash
-python media-date-organiser.py
+python program/media-date-organiser.py
 ```
 
 The script will:
-1. Create three folders: `photos`, `videos`, and `failed`
-2. Process all media files in the current directory
+1. Create an `output` folder with subfolders: `photos`, `videos`, and `failed`
+2. Process all media files in the root directory
 3. Set correct dates based on filename or metadata
-4. Move files to appropriate folders
-5. Generate a `summary.txt` file with results
+4. Move files to appropriate folders in `output`
+5. Generate a `summary.txt` file in the `output` folder
 
 ## Folder Structure
 
 ```
-├── photos/          # Successfully processed photos
-├── videos/          # Successfully processed videos
-├── failed/          # Files that couldn't be processed
-├── summary.txt      # Processing report
-├── exiftool.exe     # Required ExifTool executable
-└── media-date-organiser.py  # Main script
+├── program/                # Program files
+│   ├── exiftool.exe       # ExifTool executable
+│   ├── exiftool_files/    # ExifTool supporting files
+│   └── media-date-organiser.py  # Main script
+│
+├── output/                # Generated folders
+│   ├── photos/           # Successfully processed photos
+│   ├── videos/           # Successfully processed videos
+│   ├── failed/           # Files that couldn't be processed
+│   └── summary.txt       # Processing report
+│
+├── .gitignore            # Git configuration
+├── .gitattributes        # Git configuration
+├── README.md             # This file
+└── *.jpg/*.mp4           # Your media files go here
 ```
 
 ## Supported Formats
@@ -68,7 +77,7 @@ All dates are set to 3 PM (15:00) on the extracted date.
 
 ## Summary Report
 
-The generated `summary.txt` includes:
+The generated `output/summary.txt` includes:
 - Total number of files processed
 - Number of successful/failed operations
 - Separate counts for photos and videos
@@ -78,6 +87,6 @@ The generated `summary.txt` includes:
 ## Error Handling
 
 Files that can't be processed (due to invalid dates, metadata issues, etc.) are:
-- Moved to the `failed` folder
+- Moved to the `output/failed` folder
 - Listed in the summary report with error details
 - Counted in the failed files statistics
