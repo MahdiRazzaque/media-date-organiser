@@ -1,0 +1,21 @@
+# ExifTool files
+exiftool.exe
+exiftool_files/
+
+# Generated folders
+failed/
+videos/
+photos/
+
+# Generated files
+summary.txt
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.env
+.venv
+env/
+venv/
+ENV/ 
